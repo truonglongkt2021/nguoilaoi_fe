@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Peer from 'simple-peer';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:3000');  // Kết nối đến signaling server
+const socket = io('https://apinguoilaoi.amazingtech.cc');  // Kết nối đến signaling server
 
 export const VideoChat = () => {  // Đây là named export
   const [myId, setMyId] = useState('');
