@@ -1,9 +1,10 @@
 import logo from './logo.svg';
 import './App.css';
-
+import { VideoChat } from './VideoChat.js'
 function App() {
   return (
     <div className="App">
+      <VideoChat />
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
