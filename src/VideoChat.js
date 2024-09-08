@@ -3,7 +3,10 @@ import Peer from 'simple-peer';
 import io from 'socket.io-client';
 import './VideoChat.css';  // Import file CSS
 
-const socket = io(process.env.REACT_APP_API_URL);
+const socket = io(process.env.REACT_APP_API_URL, {
+  transports: ['websocket'],
+  secure: true
+});
 
 export const VideoChat = () => {
   console.log(process.env.REACT_APP_API_URL);
