@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import Peer from 'simple-peer';
 import io from 'socket.io-client';
 import './VideoChat.css';  // Import file CSS
-require('dotenv').config();
 
 const socket = io(process.env.REACT_APP_API_URL);
 
