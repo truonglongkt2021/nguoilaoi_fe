@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Peer from 'simple-peer';
 import io from 'socket.io-client';
 import './VideoChat.css';  // Import file CSS
-const socket = io('https://apinguoilaoi.amazingtech.cc');
+const socket = io('https://apinguoilaoiv2.amazingtech.cc');
 
 export const VideoChat = () => {
   const [myId, setMyId] = useState('');
