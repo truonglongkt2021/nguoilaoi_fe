@@ -1,72 +1,101 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Peer from 'simple-peer';
 import io from 'socket.io-client';
-
-const socket = io('https://apinguoilaoi.amazingtech.cc');  // Kết nối đến signaling server
+import './VideoChat.css';  // Import file CSS
+const socket = io('https://apinguoilaoi.amazingtech.cc');
 
 export const VideoChat = () => {
-  const [myId, setMyId] = useState('');  // ID của chính mình
-  const [peerId, setPeerId] = useState('');  // ID của peer đối diện
-  const [peer, setPeer] = useState(null);  // Đối tượng peer WebRTC
-  const myVideo = useRef();  // Video của chính mình
-  const peerVideo = useRef();  // Video của đối phương
+  const [myId, setMyId] = useState('');
+  const [peers, setPeers] = useState([]); // Lưu trữ danh sách các peer
+  const [roomId, setRoomId] = useState('');
+  const myVideo = useRef();
+  const videoRefs = useRef({}); // Lưu trữ các video refs của các peer khác
 
   useEffect(() => {
-    // Nhận ID từ signaling server khi kết nối
     socket.on('connect', () => {
       setMyId(socket.id);
     });
 
     // Nhận tín hiệu WebRTC từ peer khác
     socket.on('signal', (data) => {
-      console.log('Received signal:', data);
+      const peer = peers.find(p => p.peerId === data.from);
       if (peer) {
-        peer.signal(data.signal);
+        peer.peer.signal(data.signal);
       }
     });
-  }, [peer]);
 
-  // Bắt đầu phát video từ webcam và tạo kết nối WebRTC
+    socket.on('new-user', (userId) => {
+      createPeer(userId, false); // Tạo kết nối với người mới
+    });
+
+    socket.on('room-full', (message) => {
+      alert(message); // Thông báo nếu room đã đầy
+    });
+  }, [peers]);
+
+  const joinRoom = () => {
+    if (roomId) {
+      socket.emit('join-room', roomId);
+    }
+  };
+
   const startStream = () => {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-      // Hiển thị video của chính mình
+    navigator.mediaDevices.getUserMedia({
+      video: {
+        width: { max: 640 },
+        height: { max: 480 },
+        frameRate: { max: 30 }
+      },
+      audio: true
+    }).then((stream) => {
       myVideo.current.srcObject = stream;
+      createPeer(null, true, stream); // Tạo kết nối cho chính mình
+    }).catch((error) => {
+      console.error("Error accessing media devices:", error);
+    });
+  };
 
-      // Tạo một peer mới để khởi tạo kết nối WebRTC
-      const newPeer = new Peer({
-        initiator: true,
-        trickle: false,
-        stream: stream,  // Gửi stream của mình cho peer khác
-      });
+  const createPeer = (userId, initiator, stream) => {
+    const newPeer = new Peer({
+      initiator: initiator,
+      trickle: false,
+      stream: stream,
+    });
 
-      // Gửi tín hiệu WebRTC qua signaling server
-      newPeer.on('signal', (signal) => {
-        socket.emit('signal', { signal, to: peerId });
-      });
+    newPeer.on('signal', (signal) => {
+      socket.emit('signal', { signal, to: userId });
+    });
 
-      // Nhận stream từ peer khác và hiển thị
-      newPeer.on('stream', (stream) => {
-        peerVideo.current.srcObject = stream;
-      });
+    newPeer.on('stream', (stream) => {
+      if (!videoRefs.current[userId]) {
+        videoRefs.current[userId] = React.createRef();
+      }
+      videoRefs.current[userId].current.srcObject = stream;
+    });
 
-      setPeer(newPeer);
-    }).catch((err) => console.error("Error accessing media devices.", err));
+    setPeers((prevPeers) => [...prevPeers, { peerId: userId, peer: newPeer }]);
   };
 
   return (
-    <div>
+    <div className="video-container">
       <h3>Your ID: {myId}</h3>
       <input
         type="text"
-        placeholder="Enter Peer ID"
-        value={peerId}
-        onChange={(e) => setPeerId(e.target.value)}
+        placeholder="Enter Room ID"
+        value={roomId}
+        onChange={(e) => setRoomId(e.target.value)}
       />
+      <button onClick={joinRoom}>Join Room</button>
       <button onClick={startStream}>Start Stream</button>
 
-      <div>
-        <video ref={myVideo} autoPlay muted style={{ width: '50%' }} />
-        <video ref={peerVideo} autoPlay style={{ width: '50%' }} />
+      <div className="main-video">
+        <video ref={myVideo} autoPlay muted />
+      </div>
+      
+      <div className="peer-videos">
+        {Object.keys(videoRefs.current).map((userId) => (
+          <video key={userId} ref={videoRefs.current[userId]} autoPlay />
+        ))}
       </div>
     </div>
   );
